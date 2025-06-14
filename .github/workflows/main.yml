@@ -28,15 +28,15 @@ jobs:
     - name: Optimize Server for RDP
       run: |
         # Disable unnecessary services for better performance
-        Set-Service -Name 'WSearch' -StartupType Disabled; Stop-Service -Name 'WSearch' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'SysMain' -StartupType Disabled; Stop-Service -Name 'SysMain' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'DiagTrack' -StartupType Disabled; Stop-Service -Name 'DiagTrack' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'dmwappushservice' -StartupType Disabled; Stop-Service -Name 'dmwappushservice' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'RetailDemo' -StartupType Disabled; Stop-Service -Name 'RetailDemo' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'Fax' -StartupType Disabled; Stop-Service -Name 'Fax' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'wuauserv' -StartupType Disabled; Stop-Service -Name 'wuauserv' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'BITS' -StartupType Disabled; Stop-Service -Name 'BITS' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name 'Spooler' -StartupType Disabled; Stop-Service -Name 'Spooler' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'WSearch' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'WSearch' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'SysMain' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'SysMain' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'DiagTrack' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'DiagTrack' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'dmwappushservice' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'dmwappushservice' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'RetailDemo' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'RetailDemo' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'Fax' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'Fax' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'wuauserv' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'wuauserv' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'BITS' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'BITS' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'Spooler' -StartupType Disabled -ErrorAction SilentlyContinue; Stop-Service -Name 'Spooler' -Force -ErrorAction SilentlyContinue
         # Disable visual effects to reduce graphical load
         Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2
         Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'UserPreferencesMask' -Value ([byte[]](0x90,0x12,0x03,0x80,0x10,0x00,0x00,0x00))
