@@ -31,6 +31,22 @@ jobs:
         Set-Service -Name 'WSearch' -StartupType Disabled; Stop-Service -Name 'WSearch' -Force -ErrorAction SilentlyContinue
         Set-Service -Name 'SysMain' -StartupType Disabled; Stop-Service -Name 'SysMain' -Force -ErrorAction SilentlyContinue
         Set-Service -Name 'DiagTrack' -StartupType Disabled; Stop-Service -Name 'DiagTrack' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'dmwappushservice' -StartupType Disabled; Stop-Service -Name 'dmwappushservice' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'RetailDemo' -StartupType Disabled; Stop-Service -Name 'RetailDemo' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'Fax' -StartupType Disabled; Stop-Service -Name 'Fax' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'wuauserv' -StartupType Disabled; Stop-Service -Name 'wuauserv' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'BITS' -StartupType Disabled; Stop-Service -Name 'BITS' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name 'Spooler' -StartupType Disabled; Stop-Service -Name 'Spooler' -Force -ErrorAction SilentlyContinue
+        # Disable visual effects to reduce graphical load
+        Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2
+        Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'UserPreferencesMask' -Value ([byte[]](0x90,0x12,0x03,0x80,0x10,0x00,0x00,0x00))
+        # Optimize network settings for RDP
+        Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'MaxUserPort' -Value 65534
+        Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'TcpTimedWaitDelay' -Value 30
+        # Reduce CPU usage by adjusting process priority and disabling background tasks
+        Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl' -Name 'Win32PrioritySeparation' -Value 0x26
+        # Disable Windows Defender real-time protection to reduce CPU load (optional, based on security needs)
+        Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
         # Set power plan to High Performance
         powercfg /setactive SCHEME_MIN
 
