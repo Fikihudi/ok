@@ -63,4 +63,5 @@ jobs:
         Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow
 
     - name: Keep the GitHub Action Runner Alive
-      run: timeout /t 21600 /nobreak
+  shell: pwsh
+  run: Start-Sleep -Seconds 21600
