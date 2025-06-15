@@ -26,42 +26,37 @@ jobs:
 
     - name: Optimize Server for Performance
       run: |
-        # Disable services
-        $services = @('WSearch','SysMain','DiagTrack','dmwappushservice','RetailDemo','Fax','wuauserv','BITS','Spooler')
-        foreach ($svc in $services) {
-          Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
-          Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
+        # Non-essential services
+        "WSearch","SysMain","DiagTrack","dmwappushservice","RetailDemo","Fax","wuauserv","BITS","Spooler" | ForEach-Object {
+          Set-Service -Name $_ -StartupType Disabled -ErrorAction SilentlyContinue
+          Stop-Service -Name $_ -Force -ErrorAction SilentlyContinue
         }
 
-        # Visual effects OFF
+        # Disable visual effects
         Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2
         Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'UserPreferencesMask' -Value ([byte[]](0x90,0x12,0x03,0x80,0x10,0x00,0x00,0x00))
 
-        # UI responsiveness
-        Set-ItemProperty -Path 'HKCU:\Control Panel\Mouse' -Name 'MouseHoverTime' -Value 0
-        Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'MenuShowDelay' -Value 0
-
-        # Network boost
+        # Optimize network
         Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'MaxUserPort' -Value 65534
         Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'TcpTimedWaitDelay' -Value 30
 
-        # CPU Priority
+        # Reduce CPU usage
         Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl' -Name 'Win32PrioritySeparation' -Value 0x26
 
-        # Disable Defender Realtime
+        # Disable Defender (optional)
         Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
 
-        # Power settings: performance + no sleep
+        # High Performance mode
         powercfg /setactive SCHEME_MIN
-        powercfg -change -standby-timeout-ac 0
-        powercfg -change -monitor-timeout-ac 0
 
     - name: Start Playit and Setup RDP Tunnel
       env:
         PLAYIT_AUTH_KEY: ${{ secrets.PL }}
       run: |
-        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow
+        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow -Wait
+        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -NoNewWindow
 
     - name: Keep the GitHub Action Runner Alive
-  shell: pwsh
-  run: Start-Sleep -Seconds 21600
+      shell: pwsh
+      run: |
+        Start-Sleep -Seconds 21600  # 6 jam maksimal waktu workflow
