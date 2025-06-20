@@ -1,62 +1,82 @@
-name: Playit RDP Tunnel
+name: Ubuntu RDP Tunnel
 
 on:
   workflow_dispatch:
 
 jobs:
   setup-rdp-tunnel:
-    runs-on: windows-2025
-
+    runs-on: ubuntu-22.04
+    
     steps:
     - name: Check out the repository
       uses: actions/checkout@v2
 
+    - name: Update package lists
+      run: |
+        sudo apt update
+        
+    - name: Install XFCE Desktop Environment and XRDP
+      run: |
+        sudo DEBIAN_FRONTEND=noninteractive apt install -y xfce4 xfce4-goodies
+        sudo apt install -y xrdp
+        sudo systemctl enable xrdp
+        sudo adduser xrdp ssl-cert
+        
+    - name: Configure XRDP
+      run: |
+        sudo cp /etc/xrdp/xrdp.ini /etc/xrdp/xrdp.ini.bak
+        sudo bash -c 'echo "[Xvnc]
+name=Xvnc
+lib=libvnc.so
+username=asknouser
+password=asknopass
+ip=127.0.0.1
+port=-1" > /etc/xrdp/xrdp.ini'
+        echo "xfce4-session" | sudo tee /etc/xrdp/startwm.sh > /dev/null
+        sudo chmod +x /etc/xrdp/startwm.sh
+        sudo systemctl restart xrdp
+        
+    - name: Set user password
+      run: |
+        sudo usermod -aG sudo runner
+        echo "runner:p@ssw0rd!" | sudo chpasswd
+        
+    - name: Optimize System for RDP
+      run: |
+        # Reduce unnecessary services
+        sudo systemctl disable snapd.service
+        sudo systemctl stop snapd.service
+        # Disable updates
+        sudo systemctl disable apt-daily.service
+        sudo systemctl disable apt-daily.timer
+        sudo systemctl disable apt-daily-upgrade.service
+        sudo systemctl disable apt-daily-upgrade.timer
+        # Set CPU governor to performance
+        echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+        # Increase network performance
+        sudo sysctl -w net.core.rmem_max=26214400
+        sudo sysctl -w net.core.rmem_default=26214400
+    
     - name: Download and Install Playit
       run: |
-        Invoke-WebRequest -Uri "https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-windows-x86_64-signed.exe" -OutFile "$env:USERPROFILE\playit.exe"
-        Start-Sleep -Seconds 5
-
-    - name: Enable RDP and Basic Config
-      run: |
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
-        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
-        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "MinEncryptionLevel" -Value 3
-        Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "p@ssw0rd!" -Force)
-
-    - name: Optimize Server for Performance
-      run: |
-        # Non-essential services
-        "WSearch","SysMain","DiagTrack","dmwappushservice","RetailDemo","Fax","wuauserv","BITS","Spooler" | ForEach-Object {
-          Set-Service -Name $_ -StartupType Disabled -ErrorAction SilentlyContinue
-          Stop-Service -Name $_ -Force -ErrorAction SilentlyContinue
-        }
-
-        # Disable visual effects
-        Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects' -Name 'VisualFXSetting' -Value 2
-        Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'UserPreferencesMask' -Value ([byte[]](0x90,0x12,0x03,0x80,0x10,0x00,0x00,0x00))
-
-        # Optimize network
-        Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'MaxUserPort' -Value 65534
-        Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters' -Name 'TcpTimedWaitDelay' -Value 30
-
-        # Reduce CPU usage
-        Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl' -Name 'Win32PrioritySeparation' -Value 0x26
-
-        # Disable Defender (optional)
-        Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
-
-        # High Performance mode
-        powercfg /setactive SCHEME_MIN
-
-    - name: Start Playit and Setup RDP Tunnel
+        wget https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-linux-amd64 -O playit
+        chmod +x playit
+        sudo mv playit /usr/local/bin/
+        
+    - name: Start Playit and Set Up RDP Tunnel
       env:
         PLAYIT_AUTH_KEY: ${{ secrets.PL }}
       run: |
-        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -ArgumentList "--secret $env:PLAYIT_AUTH_KEY" -NoNewWindow -Wait
-        Start-Process -FilePath "$env:USERPROFILE\playit.exe" -NoNewWindow
-
+        nohup playit --secret $PLAYIT_AUTH_KEY > playit.log 2>&1 &
+        sleep 10
+        echo "Playit started and running in background"
+        echo "RDP available on port 3389"
+        echo "Username: runner"
+        echo "Password: p@ssw0rd!"
+        
     - name: Keep the GitHub Action Runner Alive
-      shell: pwsh
       run: |
-        Start-Sleep -Seconds 21600  # 6 jam maksimal waktu workflow
+        while true; do
+          echo "Keeping session alive..."
+          sleep 300
+        done 
