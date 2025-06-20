@@ -1,82 +1,29 @@
-name: Playit RDP Tunnel
+name: Linux RDP via Playit
 
 on:
   workflow_dispatch:
 
 jobs:
-  setup-rdp-tunnel:
+  rdp:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Check out the repository
-      uses: actions/checkout@v2
-
-    - name: Update package lists
+    - name: Install Desktop & RDP
       run: |
         sudo apt update
-        
-    - name: Install XFCE Desktop Environment and XRDP
-      run: |
-        sudo DEBIAN_FRONTEND=noninteractive apt install -y xfce4 xfce4-goodies
-        sudo apt install -y xrdp
+        sudo apt install -y xrdp xfce4 xfce4-goodies
+        echo xfce4-session > ~/.xsession
         sudo systemctl enable xrdp
-        sudo adduser xrdp ssl-cert
-        
-    - name: Configure XRDP
-      run: |
-        sudo cp /etc/xrdp/xrdp.ini /etc/xrdp/xrdp.ini.bak
-        sudo bash -c 'echo "[Xvnc]
-name: Xvnc
-lib: libvnc.so
-username: asknouser
-password: asknopass
-ip: 127.0.0.1
-port: -1" > /etc/xrdp/xrdp.ini'
-        echo "xfce4-session" | sudo tee /etc/xrdp/startwm.sh > /dev/null
-        sudo chmod +x /etc/xrdp/startwm.sh
-        sudo systemctl restart xrdp
-        
-    - name: Set user password
-      run: |
-        sudo usermod -aG sudo runner
-        echo "runner:p@ssw0rd!" | sudo chpasswd
-        
-    - name: Optimize System for RDP
-      run: |
-        # Reduce unnecessary services
-        sudo systemctl disable snapd.service
-        sudo systemctl stop snapd.service
-        # Disable updates
-        sudo systemctl disable apt-daily.service
-        sudo systemctl disable apt-daily.timer
-        sudo systemctl disable apt-daily-upgrade.service
-        sudo systemctl disable apt-daily-upgrade.timer
-        # Set CPU governor to performance
-        echo "performance" | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-        # Increase network performance
-        sudo sysctl -w net.core.rmem_max=26214400
-        sudo sysctl -w net.core.rmem_default=26214400
-    
-    - name: Download and Install Playit
-      run: |
-        wget https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-linux-amd64 -O playit
-        chmod +x playit
-        sudo mv playit /usr/local/bin/
-        
-    - name: Start Playit and Set Up RDP Tunnel
+        sudo systemctl start xrdp
+        echo 'runner:password' | sudo chpasswd
+
+    - name: Download & Run Playit
       env:
         PLAYIT_AUTH_KEY: ${{ secrets.PL }}
       run: |
-        nohup playit --secret $PLAYIT_AUTH_KEY > playit.log 2>&1 &
-        sleep 10
-        echo "Playit started and running in background"
-        echo "RDP available on port 3389"
-        echo "Username: runner"
-        echo "Password: p@ssw0rd!"
-        
-    - name: Keep the GitHub Action Runner Alive
-      run: |
-        while true; do
-          echo "Keeping session alive..."
-          sleep 300
-        done
+        curl -Lo playit https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-linux-amd64
+        chmod +x playit
+        ./playit --secret $PLAYIT_AUTH_KEY &
+
+    - name: Keep Alive
+      run: sleep 21600
