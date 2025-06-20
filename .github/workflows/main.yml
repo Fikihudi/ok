@@ -1,4 +1,4 @@
-name: Ubuntu RDP Tunnel
+name: Playit RDP Tunnel
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
 jobs:
   setup-rdp-tunnel:
     runs-on: ubuntu-22.04
-    
+
     steps:
     - name: Check out the repository
       uses: actions/checkout@v2
@@ -26,12 +26,12 @@ jobs:
       run: |
         sudo cp /etc/xrdp/xrdp.ini /etc/xrdp/xrdp.ini.bak
         sudo bash -c 'echo "[Xvnc]
-name=Xvnc
-lib=libvnc.so
-username=asknouser
-password=asknopass
-ip=127.0.0.1
-port=-1" > /etc/xrdp/xrdp.ini'
+name: Xvnc
+lib: libvnc.so
+username: asknouser
+password: asknopass
+ip: 127.0.0.1
+port: -1" > /etc/xrdp/xrdp.ini'
         echo "xfce4-session" | sudo tee /etc/xrdp/startwm.sh > /dev/null
         sudo chmod +x /etc/xrdp/startwm.sh
         sudo systemctl restart xrdp
@@ -79,4 +79,4 @@ port=-1" > /etc/xrdp/xrdp.ini'
         while true; do
           echo "Keeping session alive..."
           sleep 300
-        done 
+        done
