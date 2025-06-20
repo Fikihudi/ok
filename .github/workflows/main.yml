@@ -1,29 +1,57 @@
-name: Linux RDP via Playit
+name: Linux RDP via Playit Full Optimized
 
 on:
   workflow_dispatch:
 
 jobs:
-  rdp:
+  linux-rdp:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Install Desktop & RDP
+    - name: Install Desktop (LXDE) + RDP + Tools
       run: |
         sudo apt update
-        sudo apt install -y xrdp xfce4 xfce4-goodies
-        echo xfce4-session > ~/.xsession
-        sudo systemctl enable xrdp
-        sudo systemctl start xrdp
-        echo 'runner:password' | sudo chpasswd
+        sudo apt install -y xrdp lxde-core lxterminal x11-xserver-utils curl wget nano net-tools htop
 
-    - name: Download & Run Playit
+    - name: Set User & Session
+      run: |
+        echo "runner:password" | sudo chpasswd
+        echo "lxsession -s LXDE -e LXDE" > ~/.xsession
+        sudo sed -i 's/^test -x/#&/' /etc/xrdp/startwm.sh
+        echo "startlxde" | sudo tee -a /etc/xrdp/startwm.sh
+
+    - name: Enable XRDP
+      run: |
+        sudo adduser xrdp ssl-cert
+        sudo systemctl enable xrdp
+        sudo systemctl restart xrdp
+
+    - name: Optimize Performance (Disable Service & Set Power)
+      run: |
+        # Disable unused services
+        sudo systemctl disable --now apport.service || true
+        sudo systemctl disable --now whoopsie.service || true
+        sudo systemctl disable --now bluetooth.service || true
+        sudo systemctl disable --now cups.service || true
+        sudo systemctl disable --now snapd.service || true
+        sudo systemctl disable --now unattended-upgrades.service || true
+
+        # Set screen resolution default
+        echo "xrdb -merge ~/.Xresources" >> ~/.xsession
+        echo "xrandr --output $(xrandr | grep ' connected' | awk '{print $1}') --mode 1280x720" >> ~/.xsession || true
+
+        # Disable system sleep/suspend
+        sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+    - name: Download & Run Playit Tunnel
       env:
         PLAYIT_AUTH_KEY: ${{ secrets.PL }}
       run: |
         curl -Lo playit https://github.com/playit-cloud/playit-agent/releases/download/v0.15.26/playit-linux-amd64
         chmod +x playit
         ./playit --secret $PLAYIT_AUTH_KEY &
+        sleep 5
+        echo "Playit running. Check logs above or your Playit panel."
 
-    - name: Keep Alive
+    - name: Keep Alive (6 Hours)
       run: sleep 21600
