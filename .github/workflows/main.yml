@@ -1,49 +1,41 @@
-name: Linux RDP via Playit Full Optimized
+name: Linux RDP via Playit (LXQt Optimized)
 
 on:
   workflow_dispatch:
 
 jobs:
-  linux-rdp:
+  rdp-linux:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Install Desktop (LXDE) + RDP + Tools
+    - name: 🧰 Install LXQt + XRDP + Tools (Clean)
       run: |
         sudo apt update
-        sudo apt install -y xrdp lxde-core lxterminal x11-xserver-utils curl wget nano net-tools htop
+        sudo apt install -y --no-install-recommends xrdp lxqt sddm lightdm dbus-x11 x11-utils lxterminal htop curl wget
 
-    - name: Set User & Session
+    - name: 👤 Set Session + User
       run: |
         echo "runner:password" | sudo chpasswd
-        echo "lxsession -s LXDE -e LXDE" > ~/.xsession
+        echo "startlxqt" > ~/.xsession
         sudo sed -i 's/^test -x/#&/' /etc/xrdp/startwm.sh
-        echo "startlxde" | sudo tee -a /etc/xrdp/startwm.sh
+        echo "exec startlxqt" | sudo tee -a /etc/xrdp/startwm.sh
 
-    - name: Enable XRDP
+    - name: ⚙️ Enable & Start XRDP
       run: |
         sudo adduser xrdp ssl-cert
         sudo systemctl enable xrdp
         sudo systemctl restart xrdp
 
-    - name: Optimize Performance (Disable Service & Set Power)
+    - name: 🚀 Optimasi Kencang
       run: |
-        # Disable unused services
-        sudo systemctl disable --now apport.service || true
-        sudo systemctl disable --now whoopsie.service || true
-        sudo systemctl disable --now bluetooth.service || true
-        sudo systemctl disable --now cups.service || true
-        sudo systemctl disable --now snapd.service || true
-        sudo systemctl disable --now unattended-upgrades.service || true
-
-        # Set screen resolution default
-        echo "xrdb -merge ~/.Xresources" >> ~/.xsession
-        echo "xrandr --output $(xrandr | grep ' connected' | awk '{print $1}') --mode 1280x720" >> ~/.xsession || true
-
-        # Disable system sleep/suspend
+        for service in apport whoopsie bluetooth cups snapd ufw ModemManager fwupd unattended-upgrades; do
+          sudo systemctl disable --now $service || true
+        done
         sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+        echo 'ulimit -n 1048576' >> ~/.bashrc
+        echo 'performance' | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true
 
-    - name: Download & Run Playit Tunnel
+    - name: 🌍 Start Playit Tunnel
       env:
         PLAYIT_AUTH_KEY: ${{ secrets.PL }}
       run: |
@@ -51,7 +43,7 @@ jobs:
         chmod +x playit
         ./playit --secret $PLAYIT_AUTH_KEY &
         sleep 5
-        echo "Playit running. Check logs above or your Playit panel."
+        echo "✅ Playit tunnel aktif, akses RDP di log/Playit panel"
 
-    - name: Keep Alive (6 Hours)
+    - name: 💤 Keep Alive
       run: sleep 21600
